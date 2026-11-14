@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>جدول شولت | تمرین تمرکز و دید محیطی</title>
+    
+    <!-- فونت وزیرمتن از CDN -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    
+    <!-- تیلویند CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Vazirmatn', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* تنظیمات پایه و انیمیشن‌های سفارشی بازی */
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background: radial-gradient(circle at top right, #f8fafc, #e2e8f0);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* انیمیشن لرزش هنگام خطا */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-8px) rotate(-1deg); }
+            40% { transform: translateX(8px) rotate(1deg); }
+            60% { transform: translateX(-6px); }
+            80% { transform: translateX(6px); }
+        }
+
+        .animate-shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        /* انیمیشن پاپ هنگام کلیک درست */
+        @keyframes popSuccess {
+            0% { transform: scale(1); }
+            40% { transform: scale(0.92); }
+            75% { transform: scale(1.06); }
+            100% { transform: scale(1); }
+        }
+
+        .animate-pop {
+            animation: popSuccess 0.25s ease-out forwards;
+        }
+
+        /* استایل خانه‌های جدول */
+        .schulte-cell {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        .schulte-cell:active:not(.cell-found):not(.game-locked) {
+            transform: scale(0.93);
+        }
+
+        .cell-found {
+            background-color: #ecfdf5 !important;
+            border-color: #10b981 !important;
+            color: #059669 !important;
+            box-shadow: inset 0 2px 4px rgba(16, 185, 129, 0.1) !important;
+            opacity: 0.72;
+            cursor: default;
+        }
+
+        .cell-error {
+            background-color: #fef2f2 !important;
+            border-color: #ef4444 !important;
+            color: #dc2626 !important;
+        }
+
+        /* اعداد فارسی با عرض یکسان برای جلوگیری از پرش تایمر */
+        .tabular-nums-fa {
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col items-center justify-between py-4 px-3 sm:px-6">
+
+    <!-- هدر و عنوان بازی -->
+    <header class="w-full max-w-2xl text-center mb-3">
+        <div class="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-sm border border-slate-200/80 mb-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></span>
+            <span class="text-xs font-medium text-slate-600">تقویت تمرکز، حافظه کاری و سرعت دید محیطی</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">جدول شولت (Schulte Table)</h1>
+    </header>
+
+    <!-- بدنه اصلی بازی -->
+    <main class="w-full max-w-2xl flex flex-col gap-4 my-auto">
+
+        <!-- نوار انتخاب ابعاد جدول و کنترل‌های بالا -->
+        <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200/70 flex flex-col gap-2.5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <!-- انتخاب سایز جدول تا ۸×۸ -->
+                <div class="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-xl" role="group" aria-label="انتخاب اندازه جدول">
+                    <button onclick="changeGridSize(3)" id="btn-size-3" class="size-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 cursor-pointer">
+                        ۳×۳
+                    </button>
+                    <button onclick="changeGridSize(4)" id="btn-size-4" class="size-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 cursor-pointer">
+                        ۴×۴
+                    </button>
+                    <button onclick="changeGridSize(5)" id="btn-size-5" class="size-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-indigo-600 shadow-sm cursor-pointer">
+                        ۵×۵
+                    </button>
+                    <button onclick="changeGridSize(6)" id="btn-size-6" class="size-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 cursor-pointer">
+                        ۶×۶
+                    </button>
+                    <button onclick="changeGridSize(7)" id="btn-size-7" class="size-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 cursor-pointer">
+                        ۷×۷
+                    </button>
+                    <button onclick="changeGridSize(8)" id="btn-size-8" class="size-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 cursor-pointer">
+                        ۸×۸
+                    </button>
+                </div>
+
+                <!-- دکمه شروع مجدد -->
+                <button onclick="initGame()" class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm shadow-indigo-200 transition-all cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                        <path d="M3 3v5h5"/>
+                    </svg>
+                    <span>بازی جدید</span>
+                </button>
+            </div>
+
+            <!-- نوار انتخاب حالت عادی یا هارد مود -->
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-700">حالت سخت (Hard Mode):</span>
+                    <span class="hidden sm:inline text-[11px] text-slate-400">خانه‌های انتخاب‌شده سبز نمی‌شوند و مثل بقیه باقی می‌مانند</span>
+                </div>
+                <button type="button" onclick="toggleHardMode()" id="hard-mode-toggle" aria-pressed="false" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100">
+                    <span id="hard-mode-indicator" class="w-2.5 h-2.5 rounded-full bg-slate-300 transition-colors"></span>
+                    <span id="hard-mode-label">خاموش (عادی)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- پنل وضعیت زنده: عدد هدف، خطاها و تایمر -->
+        <div class="grid grid-cols-3 gap-2.5 sm:gap-4">
+            <!-- باکس عدد هدف -->
+            <div class="bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-slate-200/70 flex flex-col items-center justify-center relative overflow-hidden">
+                <span class="text-xs font-medium text-slate-500 mb-1">عدد هدف بعدی</span>
+                <div class="flex items-baseline gap-1">
+                    <span id="target-number" class="text-2xl sm:text-4xl font-black text-indigo-600 tabular-nums-fa">۱</span>
+                    <span id="max-number-label" class="text-xs font-semibold text-slate-400">/ ۲۵</span>
+                </div>
+                <div class="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
+                    <div id="progress-bar" class="bg-indigo-500 h-full transition-all duration-300 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- باکس شمارش خطا (حداکثر ۲ خطا) -->
+            <div id="mistakes-card" class="bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-slate-200/70 flex flex-col items-center justify-center transition-colors">
+                <span class="text-xs font-medium text-slate-500 mb-1">خطاهای مجاز</span>
+                <div id="mistakes-display" class="text-2xl sm:text-3xl font-black text-slate-800 tabular-nums-fa">
+                    ۰ <span class="text-base font-bold text-slate-400">/ ۲</span>
+                </div>
+                <!-- نشانگرهای گرافیکی خطا -->
+                <div class="flex items-center gap-1.5 mt-2">
+                    <span id="mistake-dot-1" class="w-3 h-3 rounded-full bg-slate-200 transition-colors"></span>
+                    <span id="mistake-dot-2" class="w-3 h-3 rounded-full bg-slate-200 transition-colors"></span>
+                    <span id="mistake-dot-3" class="w-3 h-3 rounded-full bg-slate-200 transition-colors" title="خطای سوم = باخت"></span>
+                </div>
+            </div>
+
+            <!-- باکس تایمر -->
+            <div class="bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-slate-200/70 flex flex-col items-center justify-center">
+                <span class="text-xs font-medium text-slate-500 mb-1">زمان سپری‌شده</span>
+                <div id="timer-display" class="text-xl sm:text-3xl font-black text-slate-800 tabular-nums-fa" dir="ltr">
+                    00.00<span class="text-xs sm:text-sm font-bold text-slate-400 mr-0.5">s</span>
+                </div>
+                <span id="timer-status" class="text-[11px] font-medium text-emerald-600 mt-1.5 bg-emerald-50 px-2 py-0.5 rounded-full">
+                    آماده شروع
+                </span>
+            </div>
+        </div>
+
+        <!-- کانتینر اصلی جدول شولت + لایه پیام پایان بازی -->
+        <div class="relative w-full max-w-[480px] mx-auto aspect-square bg-white p-2.5 sm:p-4 rounded-3xl shadow-md border border-slate-200/80">
+            
+            <!-- شبکه اعداد (Grid) -->
+            <div id="schulte-grid" class="w-full h-full grid gap-1.5 sm:gap-2">
+                <!-- خانه‌ها با جاوااسکریپت ساخته می‌شوند -->
+            </div>
+
+            <!-- مودال / لایه روی جدول هنگام برد یا باخت -->
+            <div id="result-overlay" class="hidden absolute inset-0 bg-white/95 backdrop-blur-md rounded-3xl flex flex-col items-center justify-center p-6 text-center z-10 transition-all">
+                <div id="result-icon" class="w-16 h-16 rounded-2xl flex items-center justify-center mb-3 text-3xl shadow-sm">
+                    🏆
+                </div>
+                <h2 id="result-title" class="text-2xl font-black text-slate-900 mb-1">تبریک! رکورد ثبت شد</h2>
+                <p id="result-subtitle" class="text-sm text-slate-600 mb-4 max-w-xs leading-relaxed">
+                    شما تمام اعداد را با موفقیت پیدا کردید.
+                </p>
+
+                <!-- جزئیات نتیجه -->
+                <div id="result-stats" class="w-full max-w-xs bg-slate-50 border border-slate-200/80 rounded-2xl p-3 mb-5 grid grid-cols-2 gap-2">
+                    <div class="flex flex-col">
+                        <span class="text-xs text-slate-400">زمان نهایی</span>
+                        <span id="final-time" class="text-lg font-black text-indigo-600 tabular-nums-fa" dir="ltr">18.42s</span>
+                    </div>
+                    <div class="flex flex-col border-r border-slate-200">
+                        <span class="text-xs text-slate-400">تعداد خطا</span>
+                        <span id="final-mistakes" class="text-lg font-black text-slate-700">۱ از ۲</span>
+                    </div>
+                </div>
+
+                <button onclick="initGame()" class="w-full max-w-xs bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3 px-6 rounded-xl shadow-md shadow-indigo-200 transition-all cursor-pointer flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                        <path d="M3 3v5h5"/>
+                    </svg>
+                    <span>تلاش مجدد</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- بخش رکوردها (Leaderboard) و راهنمای بازی -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1">
+            
+            <!-- جدول ۵ رکورد برتر -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/70">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-amber-500 text-lg">🏆</span>
+                        <h3 class="font-bold text-slate-800 text-sm">۵ رکورد برتر (<span id="leaderboard-size-label">۵×۵ - عادی</span>)</h3>
+                    </div>
+                    <button onclick="clearCurrentRecords()" id="clear-records-btn" class="text-[11px] text-slate-400 hover:text-rose-500 transition-colors cursor-pointer">
+                        پاک کردن رکوردها
+                    </button>
+                </div>
+
+                <!-- بهترین رکورد شخصی -->
+                <div class="bg-indigo-50/70 border border-indigo-100 rounded-xl px-3 py-2 mb-2.5 flex items-center justify-between">
+                    <span class="text-xs font-semibold text-indigo-900">بهترین رکورد شخصی شما:</span>
+                    <span id="personal-best" class="text-sm font-black text-indigo-600 tabular-nums-fa" dir="ltr">--.-- s</span>
+                </div>
+
+                <!-- لیست رکوردها -->
+                <ul id="leaderboard-list" class="space-y-1.5 text-xs">
+                    <!-- آیتم‌ها از localStorage خوانده می‌شوند -->
+                </ul>
+            </div>
+
+            <!-- راهنمای کوتاه بازی -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/70 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center gap-2 mb-2.5">
+                        <span class="text-indigo-500 text-lg">💡</span>
+                        <h3 class="font-bold text-slate-800 text-sm">راهنمای بازی و نکات تمرکز</h3>
+                    </div>
+                    <ul class="space-y-2 text-xs text-slate-600 leading-relaxed">
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0"></span>
+                            <span>اعداد را به ترتیب صعودی از <strong>۱ تا آخرین عدد</strong> در کوتاه‌ترین زمان ممکن پیدا و لمس کنید.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0"></span>
+                            <span>شما حداکثر مجاز به انجام <strong>۲ خطا</strong> هستید؛ در <strong>هارد مود</strong> خانه‌های انتخاب‌شده سبز نمی‌شوند و دقیقاً مثل بقیه خانه‌ها باقی می‌مانند تا مجبور شوید جای اعداد قبلی را به خاطر بسپارید!</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0"></span>
+                            <span><strong>تکنیک حرفه‌ای:</strong> نگاه خود را روی مرکز جدول ثابت نگه دارید و با دید محیطی اطراف را اسکن کنید.</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
+                    <span>تایمر با اولین کلیک فعال می‌شود</span>
+                    <span>ذخیره خودکار در مرورگر</span>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="mt-6 text-center text-xs text-slate-400">
+        طراحی شده برای تقویت تمرکز و سرعت پردازش ذهنی
+    </footer>
+
+    <script>
+        /**
+         * تنظیمات و وضعیت کلی بازی جدول شولت
+         */
+        let gridSize = 5; // پیش‌فرض ۵×۵ (پشتیبانی از ۳ تا ۸)
+        let isHardMode = false; // وضعیت حالت سخت (مخفی شدن اعداد انتخاب شده)
+        let maxNumber = 25;
+        let currentTarget = 1;
+        let mistakes = 0;
+        const MAX_MISTAKES = 2; // حداکثر خطای مجاز (در خطای سوم بازی می‌بازد)
+
+        let gameState = 'idle'; // 'idle' | 'playing' | 'won' | 'lost'
+        let startTime = 0;
+        let timerInterval = null;
+        let elapsedTime = 0;
+
+        // کلید ذخیره‌سازی رکوردها در مرورگر
+        const STORAGE_KEY_PREFIX = 'schulte_table_records_v2_';
+
+        // تبدیل اعداد انگلیسی به فارسی برای نمایش زیباتر
+        function toPersianDigits(num) {
+            const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+            return num.toString().replace(/\d/g, x => persianDigits[x]);
+        }
+
+        // تولید افکت صوتی ملایم با Web Audio API (بدون نیاز به فایل صوتی خارجی)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(type) {
+            try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+                if (type === 'success') {
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(520 + (currentTarget * 12), now);
+                    gainNode.gain.setValueAtTime(0.08, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                    oscillator.start(now);
+                    oscillator.stop(now + 0.12);
+                } else if (type === 'error') {
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(160, now);
+                    oscillator.frequency.linearRampToValueAtTime(110, now + 0.22);
+                    gainNode.gain.setValueAtTime(0.12, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                    oscillator.start(now);
+                    oscillator.stop(now + 0.22);
+                } else if (type === 'win') {
+                    oscillator.type = 'triangle';
+                    oscillator.frequency.setValueAtTime(523.25, now); // C5
+                    oscillator.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                    oscillator.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                    gainNode.gain.setValueAtTime(0.12, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                    oscillator.start(now);
+                    oscillator.stop(now + 0.45);
+                }
+            } catch (e) {
+                // نادیده گرفتن خطای صدا در صورت محدودیت مرورگر
+            }
+        }
+
+        /**
+         * تغییر ابعاد جدول (۳×۳ تا ۸×۸)
+         */
+        function changeGridSize(newSize) {
+            gridSize = newSize;
+            
+            // به‌روزرسانی استایل دکمه‌های انتخاب سایز
+            document.querySelectorAll('.size-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm');
+                btn.classList.add('text-slate-600');
+            });
+            const activeBtn = document.getElementById(`btn-size-${newSize}`);
+            activeBtn.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+            activeBtn.classList.remove('text-slate-600');
+
+            initGame();
+        }
+
+        /**
+         * تغییر وضعیت حالت سخت (Hard Mode)
+         */
+        function toggleHardMode() {
+            isHardMode = !isHardMode;
+            const btn = document.getElementById('hard-mode-toggle');
+            const indicator = document.getElementById('hard-mode-indicator');
+            const label = document.getElementById('hard-mode-label');
+
+            btn.setAttribute('aria-pressed', isHardMode);
+
+            if (isHardMode) {
+                btn.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer bg-rose-50 border-rose-300 text-rose-700 shadow-sm';
+                indicator.className = 'w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse';
+                label.textContent = 'فعال (هارد مود 🔥)';
+            } else {
+                btn.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100';
+                indicator.className = 'w-2.5 h-2.5 rounded-full bg-slate-300 transition-colors';
+                label.textContent = 'خاموش (عادی)';
+            }
+
+            initGame();
+        }
+
+        /**
+         * الگوریتم درهم‌سازی تصادفی فیشر-یتس (Fisher-Yates Shuffle)
+         */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        /**
+         * راه‌اندازی و شروع بازی جدید
+         */
+        function initGame() {
+            stopTimer();
+            maxNumber = gridSize * gridSize;
+            currentTarget = 1;
+            mistakes = 0;
+            elapsedTime = 0;
+            gameState = 'idle';
+
+            // مخفی کردن صفحه نتیجه
+            const overlay = document.getElementById('result-overlay');
+            overlay.classList.add('hidden');
+
+            // به‌روزرسانی UI وضعیت‌ها
+            updateTargetUI();
+            updateMistakesUI();
+            
+            document.getElementById('timer-display').innerHTML = `00.00<span class="text-xs sm:text-sm font-bold text-slate-400 mr-0.5">s</span>`;
+            const timerStatus = document.getElementById('timer-status');
+            timerStatus.textContent = 'با اولین کلیک شروع می‌شود';
+            timerStatus.className = 'text-[11px] font-medium text-indigo-600 mt-1.5 bg-indigo-50 px-2 py-0.5 rounded-full';
+
+            // ساخت آرایه اعداد و چیدمان تصادفی
+            const numbers = Array.from({ length: maxNumber }, (_, i) => i + 1);
+            shuffleArray(numbers);
+
+            renderGrid(numbers);
+            renderLeaderboard();
+        }
+
+        /**
+         * رندر کردن خانه‌های جدول شولت در DOM
+         */
+        function renderGrid(numbers) {
+            const gridEl = document.getElementById('schulte-grid');
+            gridEl.innerHTML = '';
+
+            // تنظیم دقیق ستون‌ها و سطرها با CSS Grid برای پشتیبانی کامل از ۳×۳ تا ۸×۸
+            gridEl.style.gridTemplateColumns = `repeat(${gridSize}, minmax(0, 1fr))`;
+            gridEl.style.gridTemplateRows = `repeat(${gridSize}, minmax(0, 1fr))`;
+
+            // تعیین اندازه فونت و انحنای گوشه‌ها متناسب با تراکم جدول
+            let fontSizeClass = 'text-xl sm:text-3xl';
+            let radiusClass = 'rounded-2xl';
+            let gapClass = 'gap-2 sm:gap-2.5';
+
+            if (gridSize === 3) {
+                fontSizeClass = 'text-3xl sm:text-5xl';
+            } else if (gridSize === 4) {
+                fontSizeClass = 'text-2xl sm:text-4xl';
+            } else if (gridSize === 6) {
+                fontSizeClass = 'text-lg sm:text-2xl';
+                radiusClass = 'rounded-xl';
+                gapClass = 'gap-1.5 sm:gap-2';
+            } else if (gridSize === 7) {
+                fontSizeClass = 'text-base sm:text-xl';
+                radiusClass = 'rounded-xl';
+                gapClass = 'gap-1 sm:gap-1.5';
+            } else if (gridSize === 8) {
+                fontSizeClass = 'text-sm sm:text-lg';
+                radiusClass = 'rounded-lg';
+                gapClass = 'gap-1 sm:gap-1.5';
+            }
+
+            gridEl.className = `w-full h-full grid ${gapClass}`;
+
+            numbers.forEach(num => {
+                const cell = document.createElement('button');
+                cell.type = 'button';
+                cell.dataset.number = num;
+                cell.textContent = toPersianDigits(num);
+                cell.className = `schulte-cell bg-slate-50 hover:bg-indigo-50/60 border-2 border-slate-200/90 hover:border-indigo-300 ${radiusClass} flex items-center justify-center font-black text-slate-800 ${fontSizeClass} cursor-pointer select-none focus:outline-none`;
+                
+                cell.addEventListener('click', () => handleCellClick(cell, num));
+                gridEl.appendChild(cell);
+            });
+        }
+
+        /**
+         * مدیریت کلیک روی هر خانه از جدول
+         */
+        function handleCellClick(cellElement, clickedNumber) {
+            // جلوگیری از کلیک در صورت اتمام بازی (در حالت عادی خانه‌های پیدا شده قفل می‌شوند)
+            if (gameState === 'won' || gameState === 'lost') return;
+            if (!isHardMode && cellElement.dataset.found === 'true') return;
+
+            // شروع تایمر در اولین کلیک کاربر
+            if (gameState === 'idle') {
+                startGameTimer();
+            }
+
+            // بررسی درستی یا نادرستی انتخاب
+            if (clickedNumber === currentTarget) {
+                // انتخاب صحیح
+                playTone('success');
+                cellElement.dataset.found = 'true';
+
+                // در حالت عادی خانه سبز می‌شود، اما در هارد مود ظاهر خانه دقیقاً مثل بقیه باقی می‌ماند
+                if (!isHardMode) {
+                    cellElement.classList.add('cell-found', 'animate-pop');
+                }
+                
+                if (currentTarget === maxNumber) {
+                    // بازیکن آخرین عدد را پیدا کرد -> پیروزی!
+                    handleWin();
+                } else {
+                    currentTarget++;
+                    updateTargetUI();
+                }
+            } else {
+                // انتخاب اشتباه (خطا)
+                handleMistake(cellElement);
+            }
+        }
+
+        /**
+         * مدیریت خطا و محدودیت حداکثر ۲ خطا
+         */
+        function handleMistake(cellElement) {
+            mistakes++;
+            playTone('error');
+
+            // انیمیشن لرزش و رنگ قرمز موقت روی خانه اشتباه
+            cellElement.classList.add('cell-error', 'animate-shake');
+            setTimeout(() => {
+                cellElement.classList.remove('cell-error', 'animate-shake');
+            }, 420);
+
+            updateMistakesUI();
+
+            // اگر تعداد خطا از ۲ بیشتر شد (خطای سوم)، بازی متوقف می‌شود
+            if (mistakes > MAX_MISTAKES) {
+                handleLoss();
+            }
+        }
+
+        /**
+         * به‌روزرسانی نمایش عدد هدف و نوار پیشرفت
+         */
+        function updateTargetUI() {
+            document.getElementById('target-number').textContent = toPersianDigits(currentTarget);
+            document.getElementById('max-number-label').textContent = `/ ${toPersianDigits(maxNumber)}`;
+            const progressPercent = ((currentTarget - 1) / maxNumber) * 100;
+            document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+        }
+
+        /**
+         * به‌روزرسانی نمایش خطاها و نشانگرهای رنگی
+         */
+        function updateMistakesUI() {
+            const displayCount = Math.min(mistakes, MAX_MISTAKES + 1);
+            document.getElementById('mistakes-display').innerHTML = `${toPersianDigits(displayCount)} <span class="text-base font-bold text-slate-400">/ ۲</span>`;
+
+            const card = document.getElementById('mistakes-card');
+            const dot1 = document.getElementById('mistake-dot-1');
+            const dot2 = document.getElementById('mistake-dot-2');
+            const dot3 = document.getElementById('mistake-dot-3');
+
+            // بازنشانی رنگ‌ها
+            dot1.className = 'w-3 h-3 rounded-full bg-slate-200 transition-colors';
+            dot2.className = 'w-3 h-3 rounded-full bg-slate-200 transition-colors';
+            dot3.className = 'w-3 h-3 rounded-full bg-slate-200 transition-colors';
+            card.classList.remove('border-amber-300', 'bg-amber-50/30', 'border-rose-300', 'bg-rose-50/40');
+
+            if (mistakes >= 1) {
+                dot1.className = 'w-3 h-3 rounded-full bg-amber-400 transition-colors';
+            }
+            if (mistakes === 2) {
+                dot2.className = 'w-3 h-3 rounded-full bg-orange-500 transition-colors';
+                card.classList.add('border-amber-300', 'bg-amber-50/30');
+            }
+            if (mistakes > MAX_MISTAKES) {
+                dot2.className = 'w-3 h-3 rounded-full bg-rose-500 transition-colors';
+                dot3.className = 'w-3 h-3 rounded-full bg-rose-600 transition-colors';
+                card.classList.add('border-rose-300', 'bg-rose-50/40');
+            }
+        }
+
+        /**
+         * شروع و کنترل تایمر دقیق بازی
+         */
+        function startGameTimer() {
+            gameState = 'playing';
+            startTime = performance.now();
+
+            const timerStatus = document.getElementById('timer-status');
+            timerStatus.textContent = 'در حال رکوردگیری...';
+            timerStatus.className = 'text-[11px] font-medium text-emerald-600 mt-1.5 bg-emerald-50 px-2 py-0.5 rounded-full';
+
+            timerInterval = setInterval(() => {
+                elapsedTime = (performance.now() - startTime) / 1000;
+                document.getElementById('timer-display').innerHTML = `${elapsedTime.toFixed(2).padStart(5, '0')}<span class="text-xs sm:text-sm font-bold text-slate-400 mr-0.5">s</span>`;
+            }, 30);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        /**
+         * مدیریت پیروزی در بازی و ثبت رکورد
+         */
+        function handleWin() {
+            stopTimer();
+            gameState = 'won';
+            elapsedTime = (performance.now() - startTime) / 1000;
+            playTone('win');
+
+            document.getElementById('progress-bar').style.width = '100%';
+            document.getElementById('timer-display').innerHTML = `${elapsedTime.toFixed(2).padStart(5, '0')}<span class="text-xs sm:text-sm font-bold text-slate-400 mr-0.5">s</span>`;
+            
+            const timerStatus = document.getElementById('timer-status');
+            timerStatus.textContent = 'پایان موفق!';
+            timerStatus.className = 'text-[11px] font-medium text-emerald-700 mt-1.5 bg-emerald-100 px-2 py-0.5 rounded-full';
+
+            // ذخیره رکورد در localStorage و بررسی رکورد جدید
+            const isNewBest = saveRecord(elapsedTime, mistakes);
+            renderLeaderboard();
+
+            // نمایش مودال پیروزی
+            const overlay = document.getElementById('result-overlay');
+            const icon = document.getElementById('result-icon');
+            const title = document.getElementById('result-title');
+            const subtitle = document.getElementById('result-subtitle');
+
+            icon.textContent = isNewBest ? '👑' : '🎉';
+            icon.className = 'w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3 text-3xl shadow-sm';
+            title.textContent = isNewBest ? 'رکورد جدید ثبت شد!' : 'آفرین! بازی تمام شد';
+            subtitle.textContent = isNewBest 
+                ? 'شما سریع‌ترین زمان خودتان در این ابعاد را به ثبت رساندید.' 
+                : 'عملکرد عالی! برای شکستن رکورد قبلی دوباره تلاش کنید.';
+
+            document.getElementById('final-time').textContent = `${elapsedTime.toFixed(2)}s`;
+            document.getElementById('final-mistakes').textContent = `${toPersianDigits(mistakes)} از ۲`;
+
+            overlay.classList.remove('hidden');
+        }
+
+        /**
+         * مدیریت باخت (پس از عبور از ۲ خطای مجاز)
+         */
+        function handleLoss() {
+            stopTimer();
+            gameState = 'lost';
+
+            const timerStatus = document.getElementById('timer-status');
+            timerStatus.textContent = 'توقف به دلیل خطا';
+            timerStatus.className = 'text-[11px] font-medium text-rose-700 mt-1.5 bg-rose-100 px-2 py-0.5 rounded-full';
+
+            const overlay = document.getElementById('result-overlay');
+            const icon = document.getElementById('result-icon');
+            const title = document.getElementById('result-title');
+            const subtitle = document.getElementById('result-subtitle');
+
+            icon.textContent = '❌';
+            icon.className = 'w-16 h-16 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-3 text-3xl shadow-sm';
+            title.textContent = 'بازی متوقف شد!';
+            subtitle.textContent = 'شما بیش از ۲ خطای مجاز انجام دادید. تمرکز کنید و دوباره شروع کنید.';
+
+            document.getElementById('final-time').textContent = `${elapsedTime.toFixed(2)}s`;
+            document.getElementById('final-mistakes').textContent = `۳ خطا (باخت)`;
+
+            overlay.classList.remove('hidden');
+        }
+
+        /**
+         * مدیریت ذخیره‌سازی و خواندن رکوردها از localStorage (مجزا برای حالت عادی و هارد مود)
+         */
+        function getStorageKey() {
+            const modeSuffix = isHardMode ? 'hard' : 'normal';
+            return `${STORAGE_KEY_PREFIX}${gridSize}_${modeSuffix}`;
+        }
+
+        function getRecords() {
+            try {
+                const raw = localStorage.getItem(getStorageKey());
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveRecord(timeSeconds, mistakesCount) {
+            const records = getRecords();
+            const previousBest = records.length > 0 ? records[0].time : Infinity;
+
+            // دریافت تاریخ شمسی امروز
+            let todayDate = '';
+            try {
+                todayDate = new Intl.DateTimeFormat('fa-IR', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }).format(new Date());
+            } catch (e) {
+                todayDate = 'امروز';
+            }
+
+            records.push({
+                time: timeSeconds,
+                mistakes: mistakesCount,
+                date: todayDate
+            });
+
+            // مرتب‌سازی بر اساس کمترین زمان
+            records.sort((a, b) => a.time - b.time);
+
+            // نگهداری فقط ۵ رکورد برتر
+            const top5 = records.slice(0, 5);
+
+            try {
+                localStorage.setItem(getStorageKey(), JSON.stringify(top5));
+            } catch (e) {
+                console.warn('خطا در ذخیره رکورد در مرورگر');
+            }
+
+            return timeSeconds < previousBest;
+        }
+
+        function clearCurrentRecords() {
+            localStorage.removeItem(getStorageKey());
+            renderLeaderboard();
+        }
+
+        /**
+         * رندر کردن لیست ۵ رکورد برتر در صفحه
+         */
+        function renderLeaderboard() {
+            const records = getRecords();
+            const listEl = document.getElementById('leaderboard-list');
+            const bestEl = document.getElementById('personal-best');
+            const sizeLabel = document.getElementById('leaderboard-size-label');
+            const clearBtn = document.getElementById('clear-records-btn');
+
+            const modeTitle = isHardMode ? 'هارد مود' : 'عادی';
+            sizeLabel.textContent = `${toPersianDigits(gridSize)}×${toPersianDigits(gridSize)} - ${modeTitle}`;
+
+            if (records.length === 0) {
+                bestEl.textContent = '--.-- s';
+                clearBtn.classList.add('hidden');
+                listEl.innerHTML = `
+                    <li class="text-center py-4 text-slate-400 bg-slate-50/70 rounded-xl border border-dashed border-slate-200">
+                        هنوز رکوردی برای جدول ${toPersianDigits(gridSize)}×${toPersianDigits(gridSize)} (${modeTitle}) ثبت نشده است.
+                    </li>
+                `;
+                return;
+            }
+
+            clearBtn.classList.remove('hidden');
+            bestEl.textContent = `${records[0].time.toFixed(2)} s`;
+
+            const medals = ['🥇', '🥈', '🥉', '۴', '۵'];
+            listEl.innerHTML = records.map((rec, index) => {
+                const isFirst = index === 0;
+                const rowBg = isFirst ? 'bg-amber-50/70 border-amber-200/80' : 'bg-slate-50 border-slate-100';
+                const rankBadge = index < 3 
+                    ? `<span class="text-sm">${medals[index]}</span>` 
+                    : `<span class="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[11px] font-bold">${medals[index]}</span>`;
+
+                return `
+                    <li class="flex items-center justify-between px-3 py-2 rounded-xl border ${rowBg}">
+                        <div class="flex items-center gap-2">
+                            ${rankBadge}
+                            <span class="font-black text-slate-800 tabular-nums-fa" dir="ltr">${rec.time.toFixed(2)}s</span>
+                            <span class="text-[11px] text-slate-400">(${toPersianDigits(rec.mistakes)} خطا)</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400">${rec.date}</span>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        // راه‌اندازی اولیه بازی پس از بارگذاری کامل صفحه
+        window.onload = function () {
+            initGame();
+        };
+    </script>
+</body>
+</html>
